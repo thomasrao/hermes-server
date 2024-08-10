@@ -5,6 +5,8 @@ namespace HermesSocketServer
         public string Environment;
         public WebsocketServerConfiguration WebsocketServer;
         public DatabaseConfiguration Database;
+        public long OwnerId;
+        public string AdminPassword;
     }
 
     public class WebsocketServerConfiguration

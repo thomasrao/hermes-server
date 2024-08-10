@@ -6,12 +6,12 @@ namespace HermesSocketServer.Socket.Handlers
 {
     public class RequestHandler : ISocketHandler
     {
-        public int OpCode { get; } = 3;
-        private readonly RequestManager _requests;
+        public int OperationCode { get; } = 3;
+        private readonly IRequestManager _requests;
         private readonly HermesSocketManager _sockets;
         private readonly ILogger _logger;
 
-        public RequestHandler(RequestManager requests, HermesSocketManager sockets, ILogger logger)
+        public RequestHandler(IRequestManager requests, HermesSocketManager sockets, ILogger logger)
         {
             _requests = requests;
             _sockets = sockets;
@@ -21,9 +21,7 @@ namespace HermesSocketServer.Socket.Handlers
 
         public async Task Execute<T>(WebSocketUser sender, T message, HermesSocketManager sockets)
         {
-            if (sender.Id == null)
-                return;
-            if (message is not RequestMessage data)
+            if (message is not RequestMessage data || sender.Id == null)
                 return;
 
             RequestResult? result = null;

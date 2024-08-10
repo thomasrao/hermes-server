@@ -2,12 +2,12 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using HermesSocketLibrary.Socket.Data;
+using CommonSocketLibrary.Common;
 using ILogger = Serilog.ILogger;
 
 namespace HermesSocketServer.Socket
 {
-    public class WebSocketUser
+    public class WebSocketUser : IDisposable
     {
         private readonly WebSocket _socket;
         private readonly JsonSerializerOptions _options;
@@ -22,8 +22,12 @@ namespace HermesSocketServer.Socket
         public WebSocketState State { get => _socket.State; }
         public IPAddress? IPAddress { get => _ipAddress; }
         public bool Connected { get => _connected; }
+        public string UID { get; }
+        public string ApiKey { get; set; }
         public string? Id { get; set; }
         public string? Name { get; set; }
+        public bool Admin { get; set; }
+        public bool WebLogin { get; set; }
         public DateTime LastHeartbeatReceived { get; set; }
         public DateTime LastHearbeatSent { get; set; }
         public CancellationToken Token { get => _cts.Token; }
@@ -36,7 +40,10 @@ namespace HermesSocketServer.Socket
             _options = options;
             _connected = true;
             _logger = logger;
+            Admin = false;
+            WebLogin = false;
             _cts = new CancellationTokenSource();
+            UID = Guid.NewGuid().ToString("D");
             LastHeartbeatReceived = DateTime.UtcNow;
         }
 
@@ -63,6 +70,11 @@ namespace HermesSocketServer.Socket
                 await _cts.CancelAsync();
                 _cts = new CancellationTokenSource();
             }
+        }
+
+        public void Dispose()
+        {
+            _socket.Dispose();
         }
 
         public async Task Send<Data>(int opcode, Data data)
@@ -101,9 +113,9 @@ namespace HermesSocketServer.Socket
             return null;
         }
 
-        private SocketMessage GenerateMessage<Data>(int opcode, Data data)
+        private WebSocketMessage GenerateMessage<Data>(int opcode, Data data)
         {
-            return new SocketMessage()
+            return new WebSocketMessage()
             {
                 OpCode = opcode,
                 Data = data

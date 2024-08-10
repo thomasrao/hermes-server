@@ -1,4 +1,3 @@
-using System.Text.Json;
 using HermesSocketLibrary.db;
 using HermesSocketLibrary.Requests;
 using ILogger = Serilog.ILogger;
@@ -17,14 +16,14 @@ namespace HermesSocketServer.Requests
             _logger = logger;
         }
 
-        public async Task<RequestResult> Grant(string sender, IDictionary<string, object> data)
+        public async Task<RequestResult> Grant(string sender, IDictionary<string, object>? data)
         {
-            data["user"] = sender;
+            var temp = new Dictionary<string, object>() { { "user", sender } };
 
             IDictionary<long, string> users = new Dictionary<long, string>();
             string sql = $"SELECT \"ttsVoiceId\", \"chatterId\" FROM \"TtsChatVoice\" WHERE \"userId\" = @user";
-            await _database.Execute(sql, data, (r) => users.Add(r.GetInt64(1), r.GetString(0)));
-            _logger.Information($"Fetched all chatters' selected tts voice for channel {data["user"]}.");
+            await _database.Execute(sql, temp, (r) => users.Add(r.GetInt64(1), r.GetString(0)));
+            _logger.Information($"Fetched all chatters' selected tts voice for channel [channel: {sender}]");
             return new RequestResult(true, users, notifyClientsOnAccount: false);
         }
     }

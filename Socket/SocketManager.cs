@@ -1,4 +1,3 @@
-using System.Net.WebSockets;
 using System.Timers;
 using HermesSocketLibrary.Socket.Data;
 using ILogger = Serilog.ILogger;
@@ -16,7 +15,6 @@ namespace HermesSocketServer.Socket
         {
             _sockets = new List<WebSocketUser>();
             _timer = new System.Timers.Timer(TimeSpan.FromSeconds(1));
-            _timer.AutoReset = true;
             _timer.Elapsed += async (sender, e) => await HandleHeartbeats(e);
             _timer.Enabled = true;
             _logger = logger;
@@ -66,24 +64,26 @@ namespace HermesSocketServer.Socket
                             try
                             {
                                 socket.LastHearbeatSent = DateTime.UtcNow;
-                                await socket.Send(0, new HeartbeatMessage() { DateTime = socket.LastHearbeatSent });
+                                await socket.Send(0, new HeartbeatMessage() { DateTime = signalTime, Respond = true });
                             }
                             catch (Exception)
                             {
-                                _logger.Warning($"Failed to send the heartbeat to socket [ip: {socket.IPAddress}].");
-                                await socket.Close(WebSocketCloseStatus.NormalClosure, "Failed to send a heartbeat message.", CancellationToken.None);
+                            }
+                        }
+                        else if (signalTime - socket.LastHeartbeatReceived > TimeSpan.FromSeconds(60))
+                        {
+                            _logger.Debug($"Closing socket [ip: {socket.IPAddress}] for not responding for 2 minutes.");
+                            try
+                            {
+                                socket.Dispose();
+                            }
+                            catch (Exception)
+                            {
                             }
                             finally
                             {
-                                if (!socket.Connected)
-                                    _sockets.RemoveAt(i--);
+                                _sockets.RemoveAt(i--);
                             }
-                        }
-                        else if (signalTime - socket.LastHeartbeatReceived > TimeSpan.FromSeconds(120))
-                        {
-                            _logger.Debug($"Closing socket [ip: {socket.IPAddress}] for not responding for 2 minutes.");
-                            await socket.Close(WebSocketCloseStatus.NormalClosure, "No heartbeat received.", CancellationToken.None);
-                            _sockets.RemoveAt(i--);
                         }
                     }
                 }

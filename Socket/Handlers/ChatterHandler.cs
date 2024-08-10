@@ -6,7 +6,7 @@ namespace HermesSocketServer.Socket.Handlers
 {
     public class ChatterHandler : ISocketHandler
     {
-        public int OpCode { get; } = 6;
+        public int OperationCode { get; } = 6;
         private readonly Database _database;
         private readonly HashSet<long> _chatters;
         private readonly ChatterMessage[] _array;
@@ -27,7 +27,7 @@ namespace HermesSocketServer.Socket.Handlers
 
         public async Task Execute<T>(WebSocketUser sender, T message, HermesSocketManager sockets)
         {
-            if (message is not ChatterMessage data)
+            if (message is not ChatterMessage data || sender.Id == null)
                 return;
 
             lock (_lock)
@@ -45,7 +45,7 @@ namespace HermesSocketServer.Socket.Handlers
 
             try
             {
-                string sql = "INSERT INTO \"Chatter\" (id, name) VALUES (@idd, @name)";
+                string sql = "INSERT INTO \"Chatter\" (id, name) VALUES (@idd, @name) ON CONFLICT (id) DO UPDATE SET name = @name";
                 await _database.Execute(sql, new Dictionary<string, object>() { { "idd", data.Id }, { "name", data.Name } });
             }
             catch (Exception e)

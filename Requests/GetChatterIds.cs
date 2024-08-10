@@ -1,4 +1,3 @@
-using System.Text.Json;
 using HermesSocketLibrary.db;
 using HermesSocketLibrary.Requests;
 using ILogger = Serilog.ILogger;
@@ -17,12 +16,12 @@ namespace HermesSocketServer.Requests
             _logger = logger;
         }
 
-        public async Task<RequestResult> Grant(string sender, IDictionary<string, object> data)
+        public async Task<RequestResult> Grant(string sender, IDictionary<string, object>? data)
         {
             IList<long> ids = new List<long>();
             string sql = $"SELECT id FROM \"Chatter\"";
-            await _database.Execute(sql, data, (r) => ids.Add(r.GetInt64(0)));
-            _logger.Information($"Fetched all chatters.");
+            await _database.Execute(sql, (IDictionary<string, object>?) null, (r) => ids.Add(r.GetInt64(0)));
+            _logger.Information($"Fetched all chatters for channel [channel: {sender}]");
             return new RequestResult(true, ids, notifyClientsOnAccount: false);
         }
     }

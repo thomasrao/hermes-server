@@ -7,7 +7,7 @@ namespace HermesSocketServer.Socket.Handlers
 {
     public class EmoteDetailsHandler : ISocketHandler
     {
-        public int OpCode { get; } = 7;
+        public int OperationCode { get; } = 7;
         private readonly Database _database;
         private readonly HashSet<string> _emotes;
         private readonly ILogger _logger;
@@ -23,7 +23,7 @@ namespace HermesSocketServer.Socket.Handlers
 
         public async Task Execute<T>(WebSocketUser sender, T message, HermesSocketManager sockets)
         {
-            if (message is not EmoteDetailsMessage data)
+            if (message is not EmoteDetailsMessage data || sender.Id == null)
                 return;
 
             if (data.Emotes == null)

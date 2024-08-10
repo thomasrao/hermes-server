@@ -7,7 +7,7 @@ namespace HermesSocketServer.Socket.Handlers
 {
     public class EmoteUsageHandler : ISocketHandler
     {
-        public int OpCode { get; } = 8;
+        public int OperationCode { get; } = 8;
 
         private readonly Database _database;
         private readonly HashSet<string> _history;
@@ -28,7 +28,7 @@ namespace HermesSocketServer.Socket.Handlers
 
         public async Task Execute<T>(WebSocketUser sender, T message, HermesSocketManager sockets)
         {
-            if (message is not EmoteUsageMessage data)
+            if (message is not EmoteUsageMessage data || sender.Id == null)
                 return;
 
             lock (_logger)
@@ -69,7 +69,7 @@ namespace HermesSocketServer.Socket.Handlers
                 }
             }
 
-            _logger.Information($"Tracked {rows} emote(s) to history.");
+            _logger.Debug($"Tracked {rows} emote(s) to history.");
         }
     }
 }

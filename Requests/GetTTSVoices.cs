@@ -17,16 +17,16 @@ namespace HermesSocketServer.Requests
             _logger = logger;
         }
 
-        public async Task<RequestResult> Grant(string sender, IDictionary<string, object> data)
+        public async Task<RequestResult> Grant(string sender, IDictionary<string, object>? data)
         {
             IList<VoiceDetails> voices = new List<VoiceDetails>();
             string sql = "SELECT id, name FROM \"TtsVoice\"";
-            await _database.Execute(sql, data, (r) => voices.Add(new VoiceDetails()
+            await _database.Execute(sql, (IDictionary<string, object>?) null, (r) => voices.Add(new VoiceDetails()
             {
                 Id = r.GetString(0),
                 Name = r.GetString(1)
             }));
-            _logger.Information("Fetched all TTS voices.");
+            _logger.Information($"Fetched all TTS voices for channel [channel: {sender}]");
             return new RequestResult(true, voices, notifyClientsOnAccount: false);
         }
     }

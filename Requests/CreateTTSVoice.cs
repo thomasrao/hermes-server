@@ -20,8 +20,14 @@ namespace HermesSocketServer.Requests
         }
 
 
-        public async Task<RequestResult> Grant(string sender, IDictionary<string, object> data)
+        public async Task<RequestResult> Grant(string sender, IDictionary<string, object>? data)
         {
+            if (data == null)
+            {
+                _logger.Warning("Data received from request is null. Ignoring it.");
+                return new RequestResult(false, null);
+            }
+
             string id = RandomString(25);
             data.Add("idd", id);
 
@@ -30,7 +36,7 @@ namespace HermesSocketServer.Requests
 
             string sql = "INSERT INTO \"TtsVoice\" (id, name) VALUES (@idd, @voice)";
             var result = await _database.Execute(sql, data);
-            _logger.Information($"Added a new voice: {data["voice"]} (id: {data["idd"]})");
+            _logger.Information($"Added a new voice [voice: {data["voice"]}][voice id: {data["idd"]}]");
 
             data.Remove("idd");
             return new RequestResult(result == 1, id);

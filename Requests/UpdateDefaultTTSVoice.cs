@@ -1,17 +1,16 @@
-using System.Text.Json;
 using HermesSocketLibrary.db;
 using HermesSocketLibrary.Requests;
 using ILogger = Serilog.ILogger;
 
 namespace HermesSocketServer.Requests
 {
-    public class DeleteTTSVoice : IRequest
+    public class UpdateDefaultTTSVoice : IRequest
     {
-        public string Name => "delete_tts_voice";
+        public string Name => "update_default_tts_voice";
         private Database _database;
         private ILogger _logger;
 
-        public DeleteTTSVoice(Database database, ILogger logger)
+        public UpdateDefaultTTSVoice(Database database, ILogger logger)
         {
             _database = database;
             _logger = logger;
@@ -25,13 +24,13 @@ namespace HermesSocketServer.Requests
                 return new RequestResult(false, null);
             }
 
-            if (data["voice"] is JsonElement v)
-                data["voice"] = v.ToString();
+            data["user"] = data["user"].ToString();
+            data["voice"] = data["voice"].ToString();
 
-            string sql = "DELETE FROM \"TtsVoice\" WHERE id = @voice";
-            var result = await _database.Execute(sql, data);
-            _logger.Information($"Deleted a voice by id [voice id: {data["voice"]}]");
-            return new RequestResult(result == 1, null);
+            string sql = $"UPDATE \"User\" SET ttsDefaultVoice = @voice WHERE id = @user";
+            await _database.Execute(sql, data);
+            _logger.Information($"Updated default TTS voice for channel [channel: {sender}][voice: {data["voice"]}]");
+            return new RequestResult(true, null);
         }
     }
 }

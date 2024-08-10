@@ -5,7 +5,7 @@ namespace HermesSocketServer.Socket.Handlers
 {
     public class HeartbeatHandler : ISocketHandler
     {
-        public int OpCode { get; } = 0;
+        public int OperationCode { get; } = 0;
 
         private ILogger _logger;
 
@@ -23,11 +23,14 @@ namespace HermesSocketServer.Socket.Handlers
             _logger.Verbose($"Received heartbeat from socket [ip: {sender.IPAddress}].");
 
             if (data.Respond)
+            {
+                sender.LastHearbeatSent = DateTime.UtcNow;
                 await sender.Send(0, new HeartbeatMessage()
                 {
                     DateTime = DateTime.UtcNow,
                     Respond = false
                 });
+            }
         }
     }
 }

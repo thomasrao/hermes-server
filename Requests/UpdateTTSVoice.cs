@@ -17,8 +17,14 @@ namespace HermesSocketServer.Requests
             _logger = logger;
         }
 
-        public async Task<RequestResult> Grant(string sender, IDictionary<string, object> data)
+        public async Task<RequestResult> Grant(string sender, IDictionary<string, object>? data)
         {
+            if (data == null)
+            {
+                _logger.Warning("Data received from request is null. Ignoring it.");
+                return new RequestResult(false, null);
+            }
+
             if (data["voice"] is JsonElement v)
                 data["voice"] = v.ToString();
             if (data["voiceid"] is JsonElement id)
@@ -26,7 +32,7 @@ namespace HermesSocketServer.Requests
 
             string sql = "UPDATE \"TtsVoice\" SET name = @voice WHERE id = @voiceid";
             var result = await _database.Execute(sql, data);
-            _logger.Information($"Updated voice {data["voiceid"]}'s name to {data["voice"]}.");
+            _logger.Information($"Updated voice's [voice id: {data["voiceid"]}] name [new name: {data["voice"]}]");
             return new RequestResult(result == 1, null);
         }
     }

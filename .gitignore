@@ -3,3 +3,4 @@ obj/
 appsettings*.json
 server.config*.yml
 logs/
+screenlog*
