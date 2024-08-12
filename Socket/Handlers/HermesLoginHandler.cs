@@ -49,11 +49,14 @@ namespace HermesSocketServer.Socket.Handlers
                 sender.WebLogin = data.WebLogin;
             }
 
-            string sql2 = "select name, role from \"User\" where id = @user";
-            await _database.Execute(sql2, new Dictionary<string, object>() { { "user", userId } }, sql =>
+            var userIdDict = new Dictionary<string, object>() { { "user", userId } };
+            string? ttsDefaultVoice = null;
+            string sql2 = "select name, role, \"ttsDefaultVoice\" from \"User\" where id = @user";
+            await _database.Execute(sql2, userIdDict, sql =>
             {
                 sender.Name = sql.GetString(0);
                 sender.Admin = sql.GetString(1) == "ADMIN";
+                ttsDefaultVoice = sql.GetString(2);
             });
 
             if (string.IsNullOrEmpty(sender.Name))
@@ -70,10 +73,10 @@ namespace HermesSocketServer.Socket.Handlers
                 WebLogin = data.WebLogin,
             };
 
-            var connections = new List<Connection>();
+            ack.Connections = new List<Connection>();
             string sql3 = "select \"name\", \"type\", \"clientId\", \"accessToken\", \"grantType\", \"scope\", \"expiresAt\", \"default\" from \"Connection\" where \"userId\" = @user";
-            await _database.Execute(sql3, new Dictionary<string, object>() { { "user", userId } }, sql =>
-                connections.Add(new Connection()
+            await _database.Execute(sql3, userIdDict, sql =>
+                ack.Connections.Add(new Connection()
                 {
                     Name = sql.GetString(0),
                     Type = sql.GetString(1),
@@ -81,20 +84,32 @@ namespace HermesSocketServer.Socket.Handlers
                     AccessToken = sql.GetString(3),
                     GrantType = sql.GetString(4),
                     Scope = sql.GetString(5),
-                    ExpiresIn = sql.GetDateTime(6),
+                    ExpiresAt = sql.GetDateTime(6),
                     Default = sql.GetBoolean(7)
                 })
             );
-            ack.Connections = connections.ToArray();
 
-            IList<VoiceDetails> voices = new List<VoiceDetails>();
+            ack.TTSVoicesAvailable = new Dictionary<string, string>();
             string sql4 = "SELECT id, name FROM \"TtsVoice\"";
-            await _database.Execute(sql4, (IDictionary<string, object>?) null, (r) => voices.Add(new VoiceDetails()
+            await _database.Execute(sql4, (IDictionary<string, object>?) null, (r) => ack.TTSVoicesAvailable.Add(r.GetString(0), r.GetString(1)));
+
+            ack.EnabledTTSVoices = new List<string>();
+            string sql5 = $"SELECT v.name FROM \"TtsVoiceState\" s "
+                + "INNER JOIN \"TtsVoice\" v ON s.\"ttsVoiceId\" = v.id "
+                + "WHERE \"userId\" = @user AND state = true";
+            await _database.Execute(sql5, userIdDict, (r) => ack.EnabledTTSVoices.Add(r.GetString(0)));
+
+            ack.WordFilters = new List<TTSWordFilter>();
+            string sql6 = $"SELECT id, search, replace FROM \"TtsWordFilter\" WHERE \"userId\" = @user";
+            await _database.Execute(sql6, userIdDict, (r) => ack.WordFilters.Add(new TTSWordFilter()
             {
                 Id = r.GetString(0),
-                Name = r.GetString(1)
+                Search = r.GetString(1),
+                Replace = r.GetString(2)
             }));
-            ack.TTSVoicesAvailable = voices.ToDictionary(e => e.Id, e => e.Name);
+
+            if (ttsDefaultVoice != null)
+                ack.DefaultTTSVoice = ttsDefaultVoice;
 
             await sender.Send(2, ack);
 
