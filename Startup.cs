@@ -82,6 +82,7 @@ s.AddSingleton<IRequest, DeleteTTSVoice>();
 s.AddSingleton<IRequest, UpdateTTSUser>();
 s.AddSingleton<IRequest, UpdateTTSVoice>();
 s.AddSingleton<IRequest, GetChatterIds>();
+s.AddSingleton<IRequest, GetConnections>();
 s.AddSingleton<IRequest, GetDefaultTTSVoice>();
 s.AddSingleton<IRequest, GetEmotes>();
 s.AddSingleton<IRequest, GetEnabledTTSVoices>();
