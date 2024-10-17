@@ -13,6 +13,9 @@ using Serilog.Events;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using Microsoft.AspNetCore.Connections;
+using HermesSocketServer.Validators;
+using HermesSocketServer.Store;
+using HermesSocketServer.Services;
 
 
 var yamlDeserializer = new DeserializerBuilder()
@@ -29,7 +32,7 @@ var configuration = yamlDeserializer.Deserialize<ServerConfiguration>(configCont
 if (configuration.Environment.ToUpper() != "QA" && configuration.Environment.ToUpper() != "PROD")
     throw new Exception("Invalid environment set.");
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder();
 builder.Logging.ClearProviders();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -57,7 +60,7 @@ builder.Host.UseSerilog(logger);
 builder.Logging.AddSerilog(logger);
 var s = builder.Services;
 
-s.AddSerilog();
+s.AddSerilog(logger);
 
 s.AddSingleton<ServerConfiguration>(configuration);
 s.AddSingleton<Database>();
@@ -71,6 +74,13 @@ s.AddSingleton<ISocketHandler, LoggingHandler>();
 s.AddSingleton<ISocketHandler, ChatterHandler>();
 s.AddSingleton<ISocketHandler, EmoteDetailsHandler>();
 s.AddSingleton<ISocketHandler, EmoteUsageHandler>();
+
+// Validators
+s.AddSingleton<VoiceIdValidator>();
+s.AddSingleton<VoiceNameValidator>();
+
+// Stores
+s.AddSingleton<VoiceStore>();
 
 // Request handlers
 s.AddSingleton<IRequest, GetTTSUsers>();
@@ -102,6 +112,9 @@ s.AddSingleton(new JsonSerializerOptions()
 });
 s.AddSingleton<Server>();
 
+
+s.AddHostedService<DatabaseService>();
+
 var app = builder.Build();
 app.UseForwardedHeaders();
 app.UseSerilogRequestLogging();
@@ -122,7 +135,7 @@ app.Use(async (HttpContext context, RequestDelegate next) =>
 {
     if (context.Request.Path != "/")
     {
-        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         return;
     }
 
@@ -135,6 +148,7 @@ app.Use(async (HttpContext context, RequestDelegate next) =>
     {
         context.Response.StatusCode = StatusCodes.Status400BadRequest;
     }
+    await next(context);
 });
 
 await app.RunAsync();

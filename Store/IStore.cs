@@ -6,7 +6,7 @@ namespace HermesSocketServer.Store
         IEnumerable<V> Get();
         Task Load();
         void Remove(K? key);
-        Task Save();
+        Task<bool> Save();
         bool Set(K? key, V? value);
     }
 }

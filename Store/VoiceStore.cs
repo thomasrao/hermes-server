@@ -20,7 +20,7 @@ namespace HermesSocketServer.Store
         public DateTime PreviousSave;
 
 
-        public VoiceStore(Database database, IValidator voiceIdValidator, IValidator voiceNameValidator, Serilog.ILogger logger)
+        public VoiceStore(Database database, VoiceIdValidator voiceIdValidator, VoiceNameValidator voiceNameValidator, Serilog.ILogger logger)
         {
             _database = database;
             _voiceIdValidator = voiceIdValidator;
@@ -56,6 +56,7 @@ namespace HermesSocketServer.Store
                 var name = reader.GetString(1);
                 _voices.Add(id, name);
             });
+            _logger.Information($"Loaded {_voices.Count} TTS voices from database.");
         }
 
         public void Remove(string? key)
@@ -78,13 +79,15 @@ namespace HermesSocketServer.Store
             }
         }
 
-        public async Task Save()
+        public async Task<bool> Save()
         {
+            var changes = false;
             var sb = new StringBuilder();
             var sql = "";
 
             if (_added.Any())
             {
+                int count = _added.Count;
                 sb.Append("INSERT INTO \"TtsVoice\" (id, name) VALUES ");
                 lock (_lock)
                 {
@@ -107,16 +110,19 @@ namespace HermesSocketServer.Store
 
                 try
                 {
+                    _logger.Debug($"About to save {count} voices to database.");
                     await _database.ExecuteScalar(sql);
                 }
                 catch (Exception ex)
                 {
                     _logger.Error(ex, "Failed to save TTS voices on database: " + sql);
                 }
+                changes = true;
             }
 
             if (_modified.Any())
             {
+                int count = _modified.Count;
                 sb.Append("UPDATE \"TtsVoice\" as t SET name = c.name FROM (VALUES ");
                 lock (_lock)
                 {
@@ -140,16 +146,19 @@ namespace HermesSocketServer.Store
 
                 try
                 {
+                    _logger.Debug($"About to update {count} voices on the database.");
                     await _database.ExecuteScalar(sql);
                 }
                 catch (Exception ex)
                 {
                     _logger.Error(ex, "Failed to modify TTS voices on database: " + sql);
                 }
+                changes = true;
             }
 
             if (_deleted.Any())
             {
+                int count = _deleted.Count;
                 sb.Append("DELETE FROM \"TtsVoice\" WHERE id IN (");
                 lock (_lock)
                 {
@@ -170,13 +179,16 @@ namespace HermesSocketServer.Store
 
                 try
                 {
+                    _logger.Debug($"About to delete {count} voices from the database.");
                     await _database.ExecuteScalar(sql);
                 }
                 catch (Exception ex)
                 {
                     _logger.Error(ex, "Failed to modify TTS voices on database: " + sql);
                 }
+                changes = true;
             }
+            return changes;
         }
 
         public bool Set(string? key, string? value)
