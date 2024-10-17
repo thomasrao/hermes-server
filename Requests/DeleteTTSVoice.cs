@@ -1,6 +1,6 @@
 using System.Text.Json;
-using HermesSocketLibrary.db;
 using HermesSocketLibrary.Requests;
+using HermesSocketServer.Store;
 using ILogger = Serilog.ILogger;
 
 namespace HermesSocketServer.Requests
@@ -8,12 +8,12 @@ namespace HermesSocketServer.Requests
     public class DeleteTTSVoice : IRequest
     {
         public string Name => "delete_tts_voice";
-        private Database _database;
+        private IStore<string, string> _voices;
         private ILogger _logger;
 
-        public DeleteTTSVoice(Database database, ILogger logger)
+        public DeleteTTSVoice(VoiceStore voices, ILogger logger)
         {
-            _database = database;
+            _voices = voices;
             _logger = logger;
         }
 
@@ -28,10 +28,9 @@ namespace HermesSocketServer.Requests
             if (data["voice"] is JsonElement v)
                 data["voice"] = v.ToString();
 
-            string sql = "DELETE FROM \"TtsVoice\" WHERE id = @voice";
-            var result = await _database.Execute(sql, data);
+            _voices.Remove(data["voice"].ToString());
             _logger.Information($"Deleted a voice by id [voice id: {data["voice"]}]");
-            return new RequestResult(result == 1, null);
+            return new RequestResult(true, null);
         }
     }
 }

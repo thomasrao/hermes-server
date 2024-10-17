@@ -1,6 +1,6 @@
 using System.Text.Json;
-using HermesSocketLibrary.db;
 using HermesSocketLibrary.Requests;
+using HermesSocketServer.Store;
 using ILogger = Serilog.ILogger;
 
 namespace HermesSocketServer.Requests
@@ -8,13 +8,13 @@ namespace HermesSocketServer.Requests
     public class CreateTTSVoice : IRequest
     {
         public string Name => "create_tts_voice";
-        private Database _database;
+        private IStore<string, string> _voices;
         private ILogger _logger;
         private Random _random;
 
-        public CreateTTSVoice(Database database, ILogger logger)
+        public CreateTTSVoice(VoiceStore voices, ILogger logger)
         {
-            _database = database;
+            _voices = voices;
             _logger = logger;
             _random = new Random();
         }
@@ -28,18 +28,17 @@ namespace HermesSocketServer.Requests
                 return new RequestResult(false, null);
             }
 
-            string id = RandomString(25);
-            data.Add("idd", id);
-
             if (data["voice"] is JsonElement v)
                 data["voice"] = v.ToString();
+            else
+                return new RequestResult(false, "Invalid voice name.");
 
-            string sql = "INSERT INTO \"TtsVoice\" (id, name) VALUES (@idd, @voice)";
-            var result = await _database.Execute(sql, data);
-            _logger.Information($"Added a new voice [voice: {data["voice"]}][voice id: {data["idd"]}]");
+            string id = RandomString(25);
 
-            data.Remove("idd");
-            return new RequestResult(result == 1, id);
+            _voices.Set(id, data["voice"].ToString());
+            _logger.Information($"Added a new voice [voice: {data["voice"]}][voice id: {id}]");
+
+            return new RequestResult(true, id);
         }
 
         private string RandomString(int length)

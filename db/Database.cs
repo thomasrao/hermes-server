@@ -79,13 +79,13 @@ namespace HermesSocketLibrary.db
             }
         }
 
-        public async Task<int> Execute(string sql, Action<NpgsqlCommand> action)
+        public async Task<int> Execute(string sql, Action<NpgsqlCommand> prepare)
         {
             using (var connection = await _source.OpenConnectionAsync())
             {
                 using (var command = new NpgsqlCommand(sql, connection))
                 {
-                    action(command);
+                    prepare(command);
                     await command.PrepareAsync();
 
                     return await command.ExecuteNonQueryAsync();

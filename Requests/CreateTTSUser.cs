@@ -27,16 +27,25 @@ namespace HermesSocketServer.Requests
 
             if (long.TryParse(data["chatter"].ToString(), out long chatter))
                 data["chatter"] = chatter;
+            else
+                return new RequestResult(false, "Invalid Twitch user id");
+            
             if (data["voice"] is JsonElement v)
                 data["voice"] = v.ToString();
+            else
+                return new RequestResult(false, "Invalid voice id");
+            
             data["user"] = sender;
 
             var check = await _database.ExecuteScalar("SELECT state FROM \"TtsVoiceState\" WHERE \"userId\" = @user AND \"ttsVoiceId\" = @voice", data) ?? false;
             if (check is not bool state || !state)
-                return new RequestResult(false, null);
+                return new RequestResult(false, "Voice is disabled on this channel.");
 
             string sql = "INSERT INTO \"TtsChatVoice\" (\"userId\", \"chatterId\", \"ttsVoiceId\") VALUES (@user, @chatter, @voice)";
             var result = await _database.Execute(sql, data);
+            if (result == 0)
+                return new RequestResult(false, "Could not insert the user's voice properly.");
+            
             _logger.Information($"Selected a tts voice [voice: {data["voice"]}] for user [chatter: {data["chatter"]}] in channel [channel: {data["user"]}]");
             return new RequestResult(result == 1, null);
         }

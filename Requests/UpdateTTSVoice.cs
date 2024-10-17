@@ -1,6 +1,6 @@
 using System.Text.Json;
-using HermesSocketLibrary.db;
 using HermesSocketLibrary.Requests;
+using HermesSocketServer.Store;
 using ILogger = Serilog.ILogger;
 
 namespace HermesSocketServer.Requests
@@ -8,12 +8,12 @@ namespace HermesSocketServer.Requests
     public class UpdateTTSVoice : IRequest
     {
         public string Name => "update_tts_voice";
-        private Database _database;
+        private IStore<string, string> _voices;
         private ILogger _logger;
 
-        public UpdateTTSVoice(Database database, ILogger logger)
+        public UpdateTTSVoice(VoiceStore voices, ILogger logger)
         {
-            _database = database;
+            _voices = voices;
             _logger = logger;
         }
 
@@ -30,10 +30,9 @@ namespace HermesSocketServer.Requests
             if (data["voiceid"] is JsonElement id)
                 data["voiceid"] = id.ToString();
 
-            string sql = "UPDATE \"TtsVoice\" SET name = @voice WHERE id = @voiceid";
-            var result = await _database.Execute(sql, data);
+            _voices.Set(data["voiceid"].ToString(), data["voice"].ToString());
             _logger.Information($"Updated voice's [voice id: {data["voiceid"]}] name [new name: {data["voice"]}]");
-            return new RequestResult(result == 1, null);
+            return new RequestResult(true, null);
         }
     }
 }
