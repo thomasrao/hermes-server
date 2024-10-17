@@ -213,7 +213,7 @@ namespace HermesSocketServer.Store
                 {
                     _voiceIdValidator.Check(key);
                     _voices.Add(key, value);
-                    if (!_deleted.Remove(key) && !_modified.Contains(key))
+                    if (!_deleted.Remove(key) && !_added.Contains(key))
                         _added.Add(key);
                 }
             }
