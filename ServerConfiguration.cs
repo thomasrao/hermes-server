@@ -18,5 +18,6 @@ namespace HermesSocketServer
     public class DatabaseConfiguration
     {
         public string ConnectionString;
+        public int SaveDelayInSeconds;
     }
 }

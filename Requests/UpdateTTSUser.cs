@@ -1,6 +1,7 @@
 using System.Text.Json;
 using HermesSocketLibrary.db;
 using HermesSocketLibrary.Requests;
+using HermesSocketServer.Store;
 using ILogger = Serilog.ILogger;
 
 namespace HermesSocketServer.Requests
@@ -11,14 +12,17 @@ namespace HermesSocketServer.Requests
 
         private readonly ServerConfiguration _configuration;
         private readonly Database _database;
-        private readonly ILogger _logger;
+        private ChatterStore _chatters;
+        private ILogger _logger;
 
-        public UpdateTTSUser(ServerConfiguration configuration, Database database, ILogger logger)
+        public UpdateTTSUser(ChatterStore chatters, Database database, ServerConfiguration configuration, ILogger logger)
         {
-            _configuration = configuration;
             _database = database;
+            _chatters = chatters;
+            _configuration = configuration;
             _logger = logger;
         }
+
 
         public async Task<RequestResult> Grant(string sender, IDictionary<string, object>? data)
         {
@@ -40,10 +44,9 @@ namespace HermesSocketServer.Requests
                 return new RequestResult(false, null);
             }
 
-            string sql = "UPDATE \"TtsChatVoice\" SET \"ttsVoiceId\" = @voice WHERE \"userId\" = @user AND \"chatterId\" = @chatter";
-            var result = await _database.Execute(sql, data);
+            _chatters.Set(sender, chatterId, data["voice"].ToString());
             _logger.Information($"Updated chatter's [chatter: {data["chatter"]}] selected tts voice [voice: {data["voice"]}] in channel [channel: {sender}]");
-            return new RequestResult(result == 1, null);
+            return new RequestResult(true, null);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using HermesSocketLibrary.db;
 using HermesSocketLibrary.Requests;
+using HermesSocketServer.Store;
 using ILogger = Serilog.ILogger;
 
 namespace HermesSocketServer.Requests
@@ -9,11 +10,13 @@ namespace HermesSocketServer.Requests
     {
         public string Name => "create_tts_user";
         private Database _database;
+        private ChatterStore _chatters;
         private ILogger _logger;
 
-        public CreateTTSUser(Database database, ILogger logger)
+        public CreateTTSUser(ChatterStore chatters, Database database, ILogger logger)
         {
             _database = database;
+            _chatters = chatters;
             _logger = logger;
         }
 
@@ -25,8 +28,8 @@ namespace HermesSocketServer.Requests
                 return new RequestResult(false, null);
             }
 
-            if (long.TryParse(data["chatter"].ToString(), out long chatter))
-                data["chatter"] = chatter;
+            if (long.TryParse(data["chatter"].ToString(), out long chatterId))
+                data["chatter"] = chatterId;
             else
                 return new RequestResult(false, "Invalid Twitch user id");
             
@@ -41,13 +44,9 @@ namespace HermesSocketServer.Requests
             if (check is not bool state || !state)
                 return new RequestResult(false, "Voice is disabled on this channel.");
 
-            string sql = "INSERT INTO \"TtsChatVoice\" (\"userId\", \"chatterId\", \"ttsVoiceId\") VALUES (@user, @chatter, @voice)";
-            var result = await _database.Execute(sql, data);
-            if (result == 0)
-                return new RequestResult(false, "Could not insert the user's voice properly.");
-            
+            _chatters.Set(sender, chatterId, data["voice"].ToString());
             _logger.Information($"Selected a tts voice [voice: {data["voice"]}] for user [chatter: {data["chatter"]}] in channel [channel: {data["user"]}]");
-            return new RequestResult(result == 1, null);
+            return new RequestResult(true, null);
         }
     }
 }

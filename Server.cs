@@ -52,6 +52,19 @@ namespace HermesSocketLibrary
                     if (obj.OpCode != 0)
                         _logger.Information($"rxm: {message} [ip: {socket.IPAddress}][id: {socket.Id}][name: {socket.Name}][token: {socket.ApiKey}][uid: {socket.UID}]");
 
+                    int[] nonProtectedOps = { 0, 1 };
+                    if (string.IsNullOrEmpty(socket.Id) && !nonProtectedOps.Contains(obj.OpCode))
+                    {
+                        _logger.Warning($"An attempt was made to use protected routes while not logged in [ip: {socket.IPAddress}][id: {socket.Id}][name: {socket.Name}][token: {socket.ApiKey}][uid: {socket.UID}]");
+                        return;
+                    }
+                    int[] protectedOps = { 0, 3, 5, 6, 7, 8 };
+                    if (!string.IsNullOrEmpty(socket.Id) && !protectedOps.Contains(obj.OpCode))
+                    {
+                        _logger.Warning($"An attempt was made to use non-protected routes while logged in [ip: {socket.IPAddress}][id: {socket.Id}][name: {socket.Name}][token: {socket.ApiKey}][uid: {socket.UID}]");
+                        return;
+                    }
+
                     /**
                     * 0: Heartbeat
                     * 1: Login RX

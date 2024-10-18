@@ -5,10 +5,14 @@ namespace HermesSocketServer.Services
     public class DatabaseService : BackgroundService
     {
         private readonly VoiceStore _voices;
+        private readonly ChatterStore _chatters;
+        private readonly ServerConfiguration _configuration;
         private readonly Serilog.ILogger _logger;
 
-        public DatabaseService(VoiceStore voices, Serilog.ILogger logger) {
+        public DatabaseService(VoiceStore voices, ChatterStore chatters, ServerConfiguration configuration, Serilog.ILogger logger) {
             _voices = voices;
+            _chatters = chatters;
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -16,14 +20,16 @@ namespace HermesSocketServer.Services
         {
             _logger.Information("Loading TTS voices...");
             await _voices.Load();
-            _logger.Information("Loaded TTS voices.");
+            _logger.Information("Loading TTS chatters' voice.");
+            await _chatters.Load();
 
             await Task.Run(async () =>
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(1));
+                    await Task.Delay(TimeSpan.FromSeconds(_configuration.Database.SaveDelayInSeconds));
                     await _voices.Save();
+                    await _chatters.Save();
                 }
             });
         }

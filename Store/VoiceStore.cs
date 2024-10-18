@@ -42,9 +42,9 @@ namespace HermesSocketServer.Store
             return null;
         }
 
-        public IEnumerable<string> Get()
+        public IDictionary<string, string> Get()
         {
-            return _voices.Values.ToImmutableList();
+            return _voices.ToImmutableDictionary();
         }
 
         public async Task Load()

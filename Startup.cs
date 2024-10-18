@@ -81,6 +81,7 @@ s.AddSingleton<VoiceNameValidator>();
 
 // Stores
 s.AddSingleton<VoiceStore>();
+s.AddSingleton<ChatterStore>();
 
 // Request handlers
 s.AddSingleton<IRequest, GetTTSUsers>();
